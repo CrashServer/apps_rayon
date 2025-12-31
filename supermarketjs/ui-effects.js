@@ -183,7 +183,7 @@ const spookyMessages = [
       shortcutInfo.innerHTML = `
         <div class="shortcut-tooltip">
           <span>⌨️ Shortcuts:</span>
-          <span>Ctrl+Enter = Execute current line</span>
+          <span>Ctrl+Enter = Run line / New [slot] add</span>
           <span>Ctrl+Shift+Enter = Execute all</span>
           <span>Ctrl+R = Random command</span>
           <span>Esc = Stop all</span>

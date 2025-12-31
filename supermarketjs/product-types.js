@@ -569,11 +569,16 @@ energy_drink: {
     },
     
     eggs: {
-      create: () => new Tone.PluckSynth({
-        attackNoise: 2,
-        dampening: 3000,
-        resonance: 0.95
-      }).toDestination(),
+      create: () => {
+        const synth = new Tone.PluckSynth({
+          attackNoise: 4,
+          dampening: 4000,
+          resonance: 0.98
+        }).toDestination();
+        // PluckSynth is quieter by default, boost its volume
+        synth.volume.value = 6;
+        return synth;
+      },
       note: "C4",
       pattern: "4n",
       color: "#ffd700", // Golden yellow

@@ -130,10 +130,16 @@ window.modeManager = {
             clearInterval(product.inflationInterval);
             product.inflationInterval = null;
           }
-          
+
           // Reset detune
           if (product && product.synth && product.synth.detune) {
             product.synth.detune.value = 0;
+          }
+
+          // Restore original volume
+          if (product && product.synth && product._originalVolume !== undefined) {
+            product.synth.volume.value = product._originalVolume;
+            delete product._originalVolume;
           }
         });
       }

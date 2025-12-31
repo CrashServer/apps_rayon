@@ -95,12 +95,30 @@
         }
 
         // Product commands REQUIRE slot prefix
-        if (commandBody.startsWith("add")) {
+        // Verb determines shelf height (octave): add=normal, crouch=low(-2), reach=high(+1), grab=mid-low(-1)
+        if (commandBody.startsWith("add") || commandBody.startsWith("crouch") ||
+            commandBody.startsWith("reach") || commandBody.startsWith("grab")) {
           if (!parsed.hasSlot) {
-            window.log("❌ Slot required! Use [0] through [9], e.g.: [0] add beer");
+            const verb = commandBody.split(" ")[0];
+            window.log(`❌ Slot required! Use [0] through [9], e.g.: [0] ${verb} beer`);
             return false;
           }
-          return this.handleAddProductCommand(commandBody, slot);
+
+          // Determine octave shift based on verb (shelf height)
+          let shelfOctave = 0;
+          let verb = "add";
+          if (commandBody.startsWith("crouch")) {
+            shelfOctave = -2;  // Bottom shelf - low, heavy
+            verb = "crouch";
+          } else if (commandBody.startsWith("grab")) {
+            shelfOctave = -1;  // Lower shelf - mid-low
+            verb = "grab";
+          } else if (commandBody.startsWith("reach")) {
+            shelfOctave = 1;   // Top shelf - high, light
+            verb = "reach";
+          }
+
+          return this.handleAddProductCommand(commandBody, slot, verb, shelfOctave);
         }
 
         // Remove with slot: "[0] remove" removes that slot
@@ -407,18 +425,33 @@
         return false;
       },
       
-      // Handle add product command
-      handleAddProductCommand: function(cmd, slot) {
-        const addParts = cmd.replace("add", "").trim();
+      // Handle add product command (with shelf height/octave from verb)
+      handleAddProductCommand: function(cmd, slot, verb = "add", shelfOctave = 0) {
+        // Remove the verb (add/crouch/reach/grab) from command
+        const productParts = cmd.replace(/^(add|crouch|reach|grab)\s*/, "").trim();
 
         // Break down the command
-        const parsed = this.parseProductCommand(addParts);
+        const parsed = this.parseProductCommand(productParts);
 
         if (parsed.productName) {
           // Check if product exists and product manager is available
           if (window.productTypes && window.productTypes[parsed.productName]) {
             if (window.productManager && window.productManager.addProductToSlot) {
-              window.productManager.addProductToSlot(slot, parsed.productName, parsed.modifier);
+              // Include shelf octave in modifier string for product manager to parse
+              let fullModifier = parsed.modifier;
+              if (shelfOctave !== 0) {
+                fullModifier = `shelf:${shelfOctave} ${fullModifier}`.trim();
+              }
+              window.productManager.addProductToSlot(slot, parsed.productName, fullModifier);
+
+              // Log with shelf-themed message
+              if (shelfOctave === -2) {
+                window.log(`🔽 Crouched down to grab ${parsed.productName} from the bottom shelf...`);
+              } else if (shelfOctave === -1) {
+                window.log(`👋 Grabbed ${parsed.productName} from the lower shelf...`);
+              } else if (shelfOctave === 1) {
+                window.log(`🔼 Reached up for ${parsed.productName} on the top shelf...`);
+              }
             } else {
               console.log("Product manager not loaded");
               if (window.log) window.log("Product management system not available yet.");
@@ -430,7 +463,7 @@
           }
           return true;
         } else {
-          if (window.log) window.log("Invalid command format. Try '[0] add [product]'.");
+          if (window.log) window.log(`Invalid command format. Try '[0] ${verb} [product]'.`);
           return false;
         }
       },
@@ -1004,8 +1037,8 @@
       
       // Check for transition commands
       isTransitionCommand: function(cmd) {
-        return cmd.startsWith("conveyor belt ") || cmd.startsWith("conveyor ") ||
-               cmd.startsWith("sliding doors ") || cmd.startsWith("doors ") ||
+        return cmd.startsWith("conveyor belt") || cmd.startsWith("conveyor ") ||
+               cmd.startsWith("sliding doors") || cmd.startsWith("doors ") ||
                cmd.startsWith("elevator music") || cmd === "muzak" ||
                cmd.startsWith("smooth transition") || cmd.startsWith("crossfade") ||
                cmd.startsWith("fade to ") || cmd.startsWith("morph to ");

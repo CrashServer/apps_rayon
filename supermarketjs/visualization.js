@@ -401,7 +401,7 @@ window.pendingChangesViz = {
       this.isVisible = true;
     }
 
-    // Calculate progress to next bar
+    // Calculate progress to next half note (2n subdivision)
     let progressPercent = 0;
     if (Tone.Transport.state === "started") {
       // Get current position within the bar
@@ -411,9 +411,9 @@ window.pendingChangesViz = {
       const beats = parseFloat(parts[1]) || 0;
       const sixteenths = parseFloat(parts[2]) || 0;
 
-      // Calculate progress through current bar (4 beats per bar, 4 sixteenths per beat)
-      const totalSixteenths = (beats * 4) + sixteenths;
-      const maxSixteenths = 16; // 4 beats * 4 sixteenths
+      // Calculate progress through current half note (2 beats = 8 sixteenths)
+      const totalSixteenths = ((beats % 2) * 4) + sixteenths;
+      const maxSixteenths = 8; // 2 beats * 4 sixteenths per half note
       progressPercent = (totalSixteenths / maxSixteenths) * 100;
     }
 

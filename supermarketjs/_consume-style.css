@@ -582,19 +582,74 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Editor highlight container */
+.editor-highlight-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.editor-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-input);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  clip: rect(0, auto, auto, 0); /* Clip overflowing content */
+}
+
+.editor-highlight-layer {
+  position: relative;
+  padding: 12px 15px;
+  font-family: var(--body-font);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  color: transparent; /* Text invisible, only backgrounds show */
+  letter-spacing: normal;
+  word-spacing: normal;
+  tab-size: 2;
+  -moz-tab-size: 2;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: none;
+  will-change: transform; /* Optimize for scroll transforms */
+}
+
 #editor {
+  position: relative;
+  z-index: 2;
   width: 100%;
   flex: 1;
-  background-color: var(--bg-input);
-  color: var(--accent-cream);
+  background-color: transparent; /* Transparent to show backdrop */
+  color: #ffffff; /* Bright white text for readability over colored backgrounds */
   font-family: var(--body-font);
   font-size: 13px;
   padding: 12px 15px;
   border: none;
   resize: none;
   overflow-y: auto;
+  overflow-x: hidden;
   line-height: 1.6;
   tab-size: 2;
+  -moz-tab-size: 2;
+  caret-color: #00ff88; /* Bright green cursor */
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5); /* Subtle shadow for readability */
+  letter-spacing: normal;
+  word-spacing: normal;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  margin: 0;
 }
 
 #editor:focus {
@@ -602,7 +657,73 @@ body {
 }
 
 #editor.drag-over {
-  background-color: var(--bg-hover);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Syntax highlighting colors - vibrant backgrounds, no padding to avoid offset */
+.hl-slot {
+  background: rgba(255, 200, 0, 0.45);
+  border-radius: 2px;
+}
+
+.hl-verb {
+  background: rgba(0, 220, 100, 0.4);
+  border-radius: 2px;
+}
+
+.hl-product {
+  background: rgba(0, 180, 220, 0.45);
+  border-radius: 2px;
+}
+
+.hl-modifier {
+  background: rgba(180, 80, 220, 0.45);
+  border-radius: 2px;
+}
+
+.hl-parameter {
+  background: rgba(255, 140, 0, 0.45);
+  border-radius: 2px;
+}
+
+.hl-value {
+  background: rgba(255, 80, 80, 0.4);
+  border-radius: 2px;
+}
+
+.hl-grade {
+  background: rgba(255, 50, 120, 0.5);
+  border-radius: 2px;
+}
+
+.hl-mode {
+  background: rgba(140, 90, 60, 0.5);
+  border-radius: 2px;
+}
+
+.hl-toggle {
+  background: rgba(60, 180, 75, 0.45);
+  border-radius: 2px;
+}
+
+.hl-cart {
+  background: rgba(255, 180, 0, 0.45);
+  border-radius: 2px;
+}
+
+.hl-wheel {
+  background: rgba(140, 140, 160, 0.45);
+  border-radius: 2px;
+}
+
+.hl-transition {
+  background: rgba(120, 60, 200, 0.45);
+  border-radius: 2px;
+}
+
+.hl-comment {
+  background: rgba(100, 100, 100, 0.35);
+  border-radius: 2px;
 }
 
 /* Control panel */

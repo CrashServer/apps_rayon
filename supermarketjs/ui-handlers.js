@@ -454,6 +454,12 @@ window.editorTabs = {
     const editor = document.getElementById('editor');
     if (editor) {
       editor.value = this.content[this.activeTab] || '';
+      // Refresh syntax highlighting after loading content
+      setTimeout(() => {
+        if (window.refreshSyntaxHighlight) {
+          window.refreshSyntaxHighlight();
+        }
+      }, 250);
     }
 
     // Auto-save on input
@@ -490,6 +496,11 @@ window.editorTabs = {
 
     // Save to storage
     this.saveToStorage();
+
+    // Refresh syntax highlighting
+    if (window.refreshSyntaxHighlight) {
+      window.refreshSyntaxHighlight();
+    }
 
     // Focus editor
     editor.focus();
@@ -945,7 +956,12 @@ window.uiHandlers = {
       // Move cursor after the inserted command
       this.elements.editor.selectionStart = cursorPos + randomCommand.length;
       this.elements.editor.selectionEnd = cursorPos + randomCommand.length;
-      
+
+      // Refresh syntax highlighting
+      if (window.refreshSyntaxHighlight) {
+        window.refreshSyntaxHighlight();
+      }
+
       // Execute the command
       if (window.commandParser && window.commandParser.executeCommandWithTracking) {
         window.commandParser.executeCommandWithTracking(randomCommand);
@@ -974,10 +990,20 @@ window.uiHandlers = {
       }
     }
 
-    // Ctrl+Enter to execute current line
+    // Ctrl+Enter - smart behavior:
+    // - On empty line: insert [next slot] add
+    // - On non-empty line: execute current line
     if (event.ctrlKey && event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      this.handleRunLine();
+      const currentLine = this.getCurrentLine();
+      console.log("Ctrl+Enter pressed, current line:", JSON.stringify(currentLine));
+      if (currentLine.trim() === '') {
+        console.log("Empty line, inserting next slot add");
+        this.insertNextSlotAdd();
+      } else {
+        console.log("Non-empty line, executing");
+        this.handleRunLine();
+      }
     }
     
     // Ctrl+Shift+Enter to execute all lines
@@ -993,6 +1019,83 @@ window.uiHandlers = {
     }
   },
   
+  // Insert [next available slot] add at cursor position
+  insertNextSlotAdd: function() {
+    console.log("insertNextSlotAdd called");
+
+    if (!this.elements.editor) {
+      this.locateElements();
+      if (!this.elements.editor) {
+        console.log("Editor not found!");
+        return;
+      }
+    }
+
+    // Find the next available slot (0-9)
+    const usedSlots = new Set();
+    if (window.state && window.state.slots) {
+      Object.keys(window.state.slots).forEach(slot => {
+        if (window.state.slots[slot]) {
+          usedSlots.add(slot);
+        }
+      });
+    }
+    console.log("Used slots:", Array.from(usedSlots));
+
+    // Find first available slot
+    let nextSlot = null;
+    for (let i = 0; i <= 9; i++) {
+      if (!usedSlots.has(String(i))) {
+        nextSlot = i;
+        break;
+      }
+    }
+    console.log("Next available slot:", nextSlot);
+
+    if (nextSlot === null) {
+      window.log("All slots [0-9] are in use! Remove a product first.");
+      return;
+    }
+
+    // Insert text at cursor
+    const editor = this.elements.editor;
+    const cursorPos = editor.selectionStart;
+    const text = editor.value;
+
+    // Find line boundaries
+    const lineStart = text.lastIndexOf('\n', cursorPos - 1) + 1;
+    const lineEnd = text.indexOf('\n', cursorPos);
+    const actualLineEnd = lineEnd > -1 ? lineEnd : text.length;
+
+    // Build the insert text
+    const insertText = `[${nextSlot}] add `;
+    console.log("Inserting:", insertText);
+
+    // Replace current line content (if empty) or insert at cursor
+    const before = text.substring(0, lineStart);
+    const after = text.substring(actualLineEnd);
+
+    editor.value = before + insertText + after;
+
+    // Position cursor after "add "
+    const newCursorPos = lineStart + insertText.length;
+    editor.selectionStart = newCursorPos;
+    editor.selectionEnd = newCursorPos;
+    editor.focus();
+
+    // Refresh syntax highlighting
+    if (window.refreshSyntaxHighlight) {
+      window.refreshSyntaxHighlight();
+    }
+
+    // Trigger autocomplete to show suggestions
+    if (window.autocomplete) {
+      setTimeout(() => window.autocomplete.updateSuggestions(), 50);
+    }
+
+    console.log("Insert complete, editor value:", editor.value);
+  },
+
   // Handle global keyboard shortcuts (works even when editor doesn't have focus)
   handleGlobalKeyboardShortcuts: function(event) {
     // Escape to stop all
@@ -1358,6 +1461,11 @@ window.uiHandlers = {
       editor.selectionEnd = newPos;
       editor.focus();
 
+      // Refresh syntax highlighting
+      if (window.refreshSyntaxHighlight) {
+        window.refreshSyntaxHighlight();
+      }
+
       // Update tab content
       if (window.editorTabs) {
         window.editorTabs.content[window.editorTabs.activeTab] = editor.value;
@@ -1614,7 +1722,12 @@ window.uiHandlers = {
           editor.selectionStart = newPosition;
           editor.selectionEnd = newPosition;
           editor.focus();
-          
+
+          // Refresh syntax highlighting
+          if (window.refreshSyntaxHighlight) {
+            window.refreshSyntaxHighlight();
+          }
+
           // Visual feedback
           item.style.transform = 'scale(0.95)';
           setTimeout(() => {
@@ -1626,15 +1739,20 @@ window.uiHandlers = {
         // Update the current line
         lines[currentLineIndex] = newLine;
         editor.value = lines.join('\n');
-        
+
         // Set cursor position
         const newPosition = lineStart + (cursorOffset || newLine.length);
         editor.selectionStart = newPosition;
         editor.selectionEnd = newPosition;
-        
+
         // Focus the editor
         editor.focus();
-        
+
+        // Refresh syntax highlighting
+        if (window.refreshSyntaxHighlight) {
+          window.refreshSyntaxHighlight();
+        }
+
         // Add a visual feedback effect
         item.style.transform = 'scale(0.95)';
         setTimeout(() => {

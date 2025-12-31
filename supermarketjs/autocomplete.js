@@ -15,7 +15,10 @@
     suggestions: {
       // Command starters
       commands: [
-        { text: "add", desc: "Add a product" },
+        { text: "add", desc: "Add product (eye level)" },
+        { text: "reach", desc: "Top shelf (+1 octave)" },
+        { text: "grab", desc: "Lower shelf (-1 octave)" },
+        { text: "crouch", desc: "Bottom shelf (-2 octaves)" },
         { text: "remove", desc: "Remove products" },
         { text: "my cart has", desc: "Set cart wheels" },
         { text: "discount mode", desc: "Toggle detuning" },
@@ -356,31 +359,44 @@
       const posInLine = cursorPos - lineStart;
       const beforeCursor = currentLine.substring(0, posInLine).toLowerCase();
 
-      // Get current word being typed
-      const lastSpaceIndex = beforeCursor.lastIndexOf(' ');
-      const currentWord = beforeCursor.substring(lastSpaceIndex + 1);
-      const completedText = beforeCursor.substring(0, lastSpaceIndex + 1).trim();
+      // Strip slot prefix [0]-[9] if present
+      let strippedBeforeCursor = beforeCursor;
+      const slotMatch = beforeCursor.match(/^\[\d\]\s*/);
+      if (slotMatch) {
+        strippedBeforeCursor = beforeCursor.substring(slotMatch[0].length);
+      }
+
+      // Get current word being typed (from stripped text)
+      const lastSpaceIndex = strippedBeforeCursor.lastIndexOf(' ');
+      const currentWord = strippedBeforeCursor.substring(lastSpaceIndex + 1);
+      const completedText = strippedBeforeCursor.substring(0, lastSpaceIndex + 1).trim();
       const words = completedText.split(/\s+/).filter(w => w);
 
-      // Empty line - don't show suggestions (let user type first)
-      if (beforeCursor.trim() === '') {
+      // Empty line or just slot prefix - don't show suggestions yet
+      if (strippedBeforeCursor.trim() === '') {
         return { type: 'none', filter: '', words: [] };
       }
 
-      // Require minimum characters before showing suggestions
+      // Require minimum characters before showing suggestions (unless we have completed words)
       if (currentWord.length < this.config.minCharsToTrigger && words.length === 0) {
         return { type: 'none', filter: '', words: [] };
       }
 
       // Check for specific command contexts
 
-      // "add" command
-      if (words[0] === 'add' || beforeCursor.trim() === 'add') {
-        return this.detectAddContext(words, currentWord, beforeCursor);
+      // Product verbs: add, reach, grab, crouch (all trigger product suggestions)
+      const productVerbs = ['add', 'reach', 'grab', 'crouch'];
+      const firstWord = words[0];
+      const trimmedInput = strippedBeforeCursor.trim();
+
+      // Check if we're in a product verb context
+      if (productVerbs.includes(firstWord) || productVerbs.includes(trimmedInput) ||
+          (words.length === 0 && productVerbs.some(v => v.startsWith(currentWord) && currentWord.length >= 1))) {
+        return this.detectAddContext(words, currentWord, strippedBeforeCursor);
       }
 
       // "remove" command
-      if (words[0] === 'remove' || beforeCursor.trim() === 'remove') {
+      if (words[0] === 'remove' || strippedBeforeCursor.trim() === 'remove') {
         return { type: 'product_or_all', filter: currentWord, words: words };
       }
 
@@ -442,8 +458,14 @@
     detectAddContext: function(words, currentWord, beforeCursor) {
       const modifierTexts = this.suggestions.modifiers.map(m => m.text);
       const productTexts = this.suggestions.products.map(p => p.text);
+      const parameterTexts = this.suggestions.parameters.map(p => p.text);
+      const nutriscoreGrades = this.suggestions.nutriscoreGrades.map(n => n.text.toLowerCase());
+      const shelflifeValues = this.suggestions.shelflifeValues.map(s => s.text);
+      const escalatorPatterns = this.suggestions.escalatorPatterns.map(p => p.text);
+      const escalatorSpeeds = this.suggestions.escalatorSpeeds.map(s => s.text);
 
       let usedModifiers = [];
+      let usedParameters = [];
       let productFound = null;
       let afterProduct = false;
       let lastKeyword = null;
@@ -452,58 +474,64 @@
       for (let i = 1; i < words.length; i++) {
         const word = words[i];
 
+        // Check if it's a product
         if (productTexts.includes(word)) {
           productFound = word;
           afterProduct = true;
           continue;
         }
 
-        if (modifierTexts.includes(word)) {
+        // Check if it's a modifier (before product)
+        if (modifierTexts.includes(word) && !afterProduct) {
           usedModifiers.push(word);
           continue;
         }
 
-        if (word === 'nutriscore' || word === 'shelflife' || word === 'escalator') {
-          lastKeyword = word;
+        // Check for parameter keywords
+        if (word === 'nutriscore') {
+          lastKeyword = 'nutriscore';
+          usedParameters.push('nutriscore');
           afterProduct = true;
           continue;
         }
-
+        if (word === 'shelflife') {
+          lastKeyword = 'shelflife';
+          usedParameters.push('shelflife');
+          afterProduct = true;
+          continue;
+        }
+        if (word === 'escalator') {
+          lastKeyword = 'escalator';
+          usedParameters.push('escalator');
+          afterProduct = true;
+          continue;
+        }
         if (word === 'open') {
+          usedParameters.push('open');
           afterProduct = true;
+          lastKeyword = null; // open doesn't need a value
           continue;
         }
 
-        // Check for escalator pattern/speed values
-        const escalatorPatterns = this.suggestions.escalatorPatterns.map(p => p.text);
-        const escalatorSpeeds = this.suggestions.escalatorSpeeds.map(s => s.text);
+        // Check for parameter values (these reset lastKeyword)
+        if (nutriscoreGrades.includes(word)) {
+          lastKeyword = null;
+          continue;
+        }
+        if (shelflifeValues.includes(word)) {
+          lastKeyword = null;
+          continue;
+        }
         if (escalatorPatterns.includes(word) || escalatorSpeeds.includes(word)) {
-          afterProduct = true;
+          // Escalator can have both pattern and speed, so check if we need more
           continue;
         }
       }
 
-      // Check if current partial word matches a product
-      if (!afterProduct && productTexts.some(p => p.startsWith(currentWord) && currentWord.length > 0)) {
-        // User might be typing a product name
-      }
-
-      // Determine what to suggest based on context
-
-      // If we just typed a keyword, suggest its values
-      if (lastKeyword === 'nutriscore') {
-        return { type: 'nutriscore', filter: currentWord, words: words };
-      }
-      if (lastKeyword === 'shelflife') {
-        return { type: 'shelflife', filter: currentWord, words: words };
-      }
-      if (lastKeyword === 'escalator') {
-        // Could be pattern or speed
-        return { type: 'escalator', filter: currentWord, words: words };
-      }
-
-      // Check what the last complete word was
+      // Check the last complete word for context
       const lastWord = words[words.length - 1];
+
+      // If the last word is a parameter keyword, suggest its values
       if (lastWord === 'nutriscore') {
         return { type: 'nutriscore', filter: currentWord, words: words };
       }
@@ -514,18 +542,31 @@
         return { type: 'escalator', filter: currentWord, words: words };
       }
 
-      // After product, suggest parameters
+      // If we're still expecting a value for a keyword
+      if (lastKeyword === 'nutriscore') {
+        return { type: 'nutriscore', filter: currentWord, words: words };
+      }
+      if (lastKeyword === 'shelflife') {
+        return { type: 'shelflife', filter: currentWord, words: words };
+      }
+      if (lastKeyword === 'escalator') {
+        return { type: 'escalator', filter: currentWord, words: words };
+      }
+
+      // After product, suggest parameters (that haven't been used yet)
       if (afterProduct) {
         return {
           type: 'parameter',
           filter: currentWord,
           words: words,
           productFound: productFound,
-          usedModifiers: usedModifiers
+          usedModifiers: usedModifiers,
+          usedParameters: usedParameters
         };
       }
 
       // Before product, suggest modifiers + products
+      // Filter out already used modifiers
       return {
         type: 'modifier_or_product',
         filter: currentWord,
@@ -563,7 +604,10 @@
           break;
 
         case 'parameter':
-          items = this.suggestions.parameters;
+          // Filter out already used parameters
+          items = this.suggestions.parameters.filter(
+            p => !context.usedParameters || !context.usedParameters.includes(p.text)
+          );
           break;
 
         case 'nutriscore':
@@ -583,11 +627,8 @@
           break;
 
         case 'cart_completion':
-          if (context.partial === 'my') {
-            items = [{ text: 'cart has', desc: 'Set cart wheels' }];
-          } else if (context.partial === 'my cart') {
-            items = [{ text: 'has', desc: 'Set cart wheels' }];
-          }
+          // Use full phrase so replacement works correctly
+          items = [{ text: 'my cart has', desc: 'Set cart wheels' }];
           break;
 
         case 'on_off':
@@ -789,6 +830,7 @@
       if (this.state.currentSuggestions.length === 0) return;
       this.state.selectedIndex = (this.state.selectedIndex + 1) % this.state.currentSuggestions.length;
       this.render();
+      this.scrollSelectedIntoView();
     },
 
     // Select previous suggestion
@@ -796,6 +838,15 @@
       if (this.state.currentSuggestions.length === 0) return;
       this.state.selectedIndex = (this.state.selectedIndex - 1 + this.state.currentSuggestions.length) % this.state.currentSuggestions.length;
       this.render();
+      this.scrollSelectedIntoView();
+    },
+
+    // Scroll selected item into view
+    scrollSelectedIntoView: function() {
+      const selectedItem = this.dropdown.querySelector('.autocomplete-item.selected');
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
     },
 
     // Accept current suggestion
@@ -805,20 +856,32 @@
       const suggestion = this.state.currentSuggestions[this.state.selectedIndex];
       if (!suggestion) return;
 
-      this.insertSuggestion(suggestion.text);
+      // Pass context for multi-word phrase handling
+      this.insertSuggestion(suggestion.text, this.state.context);
       this.hide();
     },
 
     // Insert suggestion text
-    insertSuggestion: function(text) {
+    insertSuggestion: function(text, context) {
       const cursorPos = this.editor.selectionStart;
       const content = this.editor.value;
-
-      // Find start of current word
       const beforeCursor = content.substring(0, cursorPos);
-      const lastSpaceIndex = beforeCursor.lastIndexOf(' ');
       const lineStart = beforeCursor.lastIndexOf('\n') + 1;
-      const wordStart = Math.max(lastSpaceIndex + 1, lineStart);
+
+      let wordStart;
+
+      // Handle multi-word phrase completions (like "my cart has")
+      // These need to replace from the start of the partial phrase
+      if (context && context.type === 'cart_completion' && context.partial) {
+        // Find where the partial phrase starts on this line
+        const lineContent = beforeCursor.substring(lineStart);
+        const partialStart = lineContent.lastIndexOf(context.partial.split(' ')[0]);
+        wordStart = lineStart + (partialStart >= 0 ? partialStart : 0);
+      } else {
+        // Normal single-word replacement
+        const lastSpaceIndex = beforeCursor.lastIndexOf(' ');
+        wordStart = Math.max(lastSpaceIndex + 1, lineStart);
+      }
 
       // Build new content
       const before = content.substring(0, wordStart);
@@ -838,6 +901,11 @@
 
       // Focus editor
       this.editor.focus();
+
+      // Refresh syntax highlighting
+      if (window.refreshSyntaxHighlight) {
+        window.refreshSyntaxHighlight();
+      }
 
       // Trigger another update for chained suggestions
       setTimeout(() => this.updateSuggestions(), 10);

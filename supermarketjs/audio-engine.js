@@ -651,10 +651,19 @@ window.audioEngine = {
         }
         
         try {
+          // Helper to detect synth type (constructor.name may be mangled in bundles)
+          const isNoiseSynth = synth.noise !== undefined && synth.envelope !== undefined && !synth.oscillator;
+          const isPluckSynth = synth.attackNoise !== undefined && synth.resonance !== undefined;
+
           // Special handling for NoiseSynth which doesn't use notes
-          if (synth.constructor.name === 'NoiseSynth' || playNote === null) {
+          if (isNoiseSynth || playNote === null) {
             console.log("Triggering NoiseSynth (no note)");
             synth.triggerAttackRelease(pattern, time);
+          }
+          // Special handling for PluckSynth which only has triggerAttack (no release)
+          else if (isPluckSynth) {
+            console.log("Triggering PluckSynth:", playNote);
+            synth.triggerAttack(playNote, time);
           } else if (Array.isArray(playNote)) {
             console.log("Triggering chord:", playNote);
             synth.triggerAttackRelease(playNote, pattern, time);

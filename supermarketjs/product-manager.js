@@ -36,16 +36,16 @@ window.productManager = {
     const self = this;
     const oldName = existingProduct.name;
 
-    // If Transport is running, schedule for next bar; otherwise replace immediately
+    // If Transport is running, schedule for next beat; otherwise replace immediately
     if (Tone.Transport.state === "started") {
-      // Schedule the update for next beat
+      // Schedule the update for next half note (much faster than waiting for full bar)
       window.state.pendingChanges[slot] = {
         name: name,
         modifier: modifier,
-        scheduledTime: Tone.Transport.nextSubdivision("1m") // Next bar
+        scheduledTime: Tone.Transport.nextSubdivision("2n") // Next half note (~0.5-1s)
       };
 
-      window.log(`🔄 Slot [${slot}] update queued: ${oldName} → ${name} (on next bar)`);
+      window.log(`🔄 Slot [${slot}] update queued: ${oldName} → ${name} (next beat)`);
 
       // Schedule the actual update
       Tone.Transport.scheduleOnce(function(time) {
@@ -96,7 +96,11 @@ window.productManager = {
     }
 
     const productName = window.state.slots[slot].name;
+
+    // Remove from both products and slots state
     this.removeProductById(slot);
+    delete window.state.slots[slot];
+
     window.log(`🗑️ Slot [${slot}] cleared (${productName} removed)`);
     return true;
   },
@@ -152,11 +156,14 @@ window.productManager = {
       return false;
     }
 
+    const count = slots.length;
     slots.forEach(slot => {
+      // Remove from both products and slots state
       this.removeProductById(slot);
+      delete window.state.slots[slot];
     });
 
-    window.log(`🧹 All ${slots.length} slots cleared`);
+    window.log(`🧹 All ${count} slots cleared`);
     return true;
   },
 
@@ -227,9 +234,19 @@ window.productManager = {
       escalatorPattern,
       escalatorSpeed,
       volumeLevel,
+      shelfOctave,
       cleanModifier
     } = this.parseModifiers(modifier, name);
-    
+
+    // Apply shelf octave shift (from crouch/reach/grab verbs)
+    if (shelfOctave !== 0) {
+      if (Array.isArray(note)) {
+        note = note.map(n => Tone.Frequency(n).transpose(12 * shelfOctave).toNote());
+      } else if (note) {
+        note = Tone.Frequency(note).transpose(12 * shelfOctave).toNote();
+      }
+    }
+
     // Apply modifiers (fresh/old, strong/flavorless, etc.)
     if (cleanModifier) {
       const modifierList = cleanModifier.split(' ');
@@ -519,8 +536,16 @@ window.productManager = {
       escalatorPattern: null,
       escalatorSpeed: null,
       volumeLevel: null,
+      shelfOctave: 0,  // Shelf height octave shift (from crouch/reach/grab verbs)
       cleanModifier: modifier
     };
+
+    // Extract shelf octave (from verb-based shelf height: crouch=-2, grab=-1, reach=+1)
+    const shelfMatch = modifier.match(/shelf:(-?\d+)/i);
+    if (shelfMatch) {
+      result.shelfOctave = parseInt(shelfMatch[1]);
+      result.cleanModifier = result.cleanModifier.replace(/shelf:-?\d+/i, '').trim();
+    }
     
     // Extract Nutriscore
     const nutriscoreMatch = modifier.match(/nutriscore\s+([A-E])/i);
@@ -688,12 +713,20 @@ window.productManager = {
   applyInflationToProduct: function(id) {
     const product = window.state.products[id];
     if (!product || !product.synth) return;
-    
+
     // Clear any existing inflation interval
     if (product.inflationInterval) {
       clearInterval(product.inflationInterval);
     }
-    
+
+    // Store original volume to restore later
+    if (product._originalVolume === undefined) {
+      product._originalVolume = product.synth.volume.value;
+    }
+
+    // Reduce volume slightly to compensate for perceived loudness increase from rising pitch
+    product.synth.volume.value = product._originalVolume - 6;
+
     // Create gradually increasing pitch
     let detuneAmount = 0;
     product.inflationInterval = setInterval(() => {
@@ -701,13 +734,13 @@ window.productManager = {
         clearInterval(product.inflationInterval);
         return;
       }
-      
+
       detuneAmount += 2; // Increase by 2 cents every interval
       if (detuneAmount > 1200) {
         detuneAmount = 0; // Reset after going up an octave
         window.log(`${product.name} price has doubled! (Reset to base level...)`);
       }
-      
+
       product.synth.detune.value = detuneAmount;
     }, 500); // Update every 500ms
   },
