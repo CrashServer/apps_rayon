@@ -230,23 +230,22 @@ window.audioEngine = {
   // Configure audio context for optimal performance
   configureAudioContext: function() {
     try {
-      // Create a new context with maximum stability settings
-      // Since latency is not important, we can maximize buffers
+      // Balance between stability and responsiveness
       const context = new Tone.Context({
-        latencyHint: "playback", // Maximum stability
-        lookAhead: 1, // Very high lookahead for maximum stability
-        updateInterval: 0.5, // Update infrequently to reduce CPU
+        latencyHint: "balanced", // Good balance of latency and stability
+        lookAhead: 0.1, // 100ms lookahead - responsive but stable
+        updateInterval: 0.05, // 50ms updates
         clockSource: "worker" // Use worker for timing
       });
-      
+
       // Set the context
       Tone.setContext(context);
-      
+
       // Log the configuration
-      console.log("Audio Context configured for performance:");
-      console.log("- Latency hint: playback");
-      console.log("- Look ahead: 0.2s");
-      console.log("- Update interval: 0.1s");
+      console.log("Audio Context configured for balanced performance:");
+      console.log("- Latency hint: balanced");
+      console.log("- Look ahead: 0.1s");
+      console.log("- Update interval: 0.05s");
       
       // Additional context optimizations
       if (context.rawContext) {
@@ -655,26 +654,27 @@ window.audioEngine = {
           const isNoiseSynth = synth.noise !== undefined && synth.envelope !== undefined && !synth.oscillator;
           const isPluckSynth = synth.attackNoise !== undefined && synth.resonance !== undefined;
 
+          // Cut off any lingering previous note to prevent overlap accumulation
+          // This is critical for preventing CPU buildup over time
+          if (synth.triggerRelease && !isPluckSynth) {
+            try {
+              synth.triggerRelease(time);
+            } catch (e) {
+              // Ignore release errors - synth might not have active note
+            }
+          }
+
           // Special handling for NoiseSynth which doesn't use notes
           if (isNoiseSynth || playNote === null) {
-            console.log("Triggering NoiseSynth (no note)");
             synth.triggerAttackRelease(pattern, time);
           }
           // Special handling for PluckSynth which only has triggerAttack (no release)
           else if (isPluckSynth) {
-            console.log("Triggering PluckSynth:", playNote);
             synth.triggerAttack(playNote, time);
           } else if (Array.isArray(playNote)) {
-            console.log("Triggering chord:", playNote);
             synth.triggerAttackRelease(playNote, pattern, time);
           } else {
-            console.log("Triggering note:", playNote);
             synth.triggerAttackRelease(playNote, pattern, time);
-          }
-          
-          // Update visualizer for this product
-          if (window.visualization && window.visualization.triggerVisualizer) {
-            window.visualization.triggerVisualizer(productId);
           }
         } catch (error) {
           console.error("Error triggering synth:", error);

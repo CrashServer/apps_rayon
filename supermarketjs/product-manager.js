@@ -214,7 +214,15 @@ window.productManager = {
     // Create the base synth
     const synth = window.productTypes[name].create();
     synth.volume.value = CONFIG.product.baseVolume; // Set base volume
-    
+
+    // Route through processing chain or fallback to destination
+    if (window.processingChain && window.processingChain.initialized) {
+      window.processingChain.route(synth, name);
+    } else {
+      // Fallback: connect directly to destination
+      synth.toDestination();
+    }
+
     // Register this voice
     if (window.performanceManager) {
       window.performanceManager.registerVoice(id, 1);

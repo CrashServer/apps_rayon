@@ -39,15 +39,29 @@ window.state = {
 // Main initialization function
 function initializeApplication() {
   console.log("Initializing Retail Therapy: Market Soundscape...");
-  
+
   try {
-    // Initialize performance manager first
+    // Initialize processing chain FIRST (frequency buses)
+    if (window.processingChain && typeof window.processingChain.init === 'function') {
+      window.processingChain.init();
+    } else {
+      console.warn("Processing chain not available - init skipped");
+    }
+
+    // Initialize voice manager (synth pools)
+    if (window.voiceManager && typeof window.voiceManager.init === 'function') {
+      window.voiceManager.init();
+    } else {
+      console.warn("Voice manager not available - init skipped");
+    }
+
+    // Initialize performance manager
     if (window.performanceManager && typeof window.performanceManager.init === 'function') {
       window.performanceManager.init();
     } else {
       console.warn("Performance manager not available - init skipped");
     }
-    
+
     // Set up global audio effects
     if (window.audioEngine && typeof window.audioEngine.setupGlobalEffects === 'function') {
       window.audioEngine.setupGlobalEffects();

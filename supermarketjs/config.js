@@ -10,12 +10,12 @@ window.CONFIG = {
       fadeInTime: 0.01, // in seconds
       fadeOutTime: 0.1, // in seconds
       visualizerUpdateInterval: 100, // in milliseconds
-      // Performance settings - prioritizing stability over latency
-      defaultLatencyHint: "playback", // Maximum stability
-      defaultLookAhead: 0.5, // High lookahead for stability (500ms)
-      defaultUpdateInterval: 0.2, // Less frequent updates (200ms)
-      reducedQualityThreshold: 0.7, // More aggressive quality reduction
-      bufferSize: 4096, // Large buffer for maximum stability
+      // Performance settings - balance between stability and responsiveness
+      defaultLatencyHint: "balanced", // Good balance
+      defaultLookAhead: 0.1, // 100ms lookahead - responsive
+      defaultUpdateInterval: 0.05, // 50ms updates
+      reducedQualityThreshold: 0.7, // Quality reduction threshold
+      bufferSize: 2048, // Moderate buffer size
       workletEnabled: true // Use AudioWorklet for better performance
     },
     

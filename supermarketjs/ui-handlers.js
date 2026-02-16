@@ -385,6 +385,134 @@ scan 12345                  // Generate pattern from barcode
 // apocalypse mode on
 `;
 
+// Tab 2 - "Midnight Mall" - A complete driving electronic composition
+const TAB2_MIDNIGHT_MALL = `// ═══════════════════════════════════════════════════════════════
+//  MIDNIGHT MALL - A driving electronic composition
+//  Press Ctrl+Shift+Enter to run all lines
+// ═══════════════════════════════════════════════════════════════
+
+// === BASS FOUNDATION ===
+[0] add industrial ham shelflife month volume loud
+[1] add cheap oil shelflife year nutriscore D
+
+// === MELODIC LAYERS ===
+[2] add expensive wine shelflife year nutriscore B volume soft
+[3] add fresh beer escalator up normal nutriscore A
+[4] add artisanal coffee shelflife month
+
+// === HARMONIC PADS ===
+[5] add luxury cheese shelflife forever volume quiet
+[6] add processed pasta shelflife year nutriscore C
+
+// === TEXTURAL ELEMENTS ===
+[7] add mass-produced chips escalator zigzag fast volume soft
+[8] add bargain candy shelflife week
+[9] add artificial rice escalator bounce normal volume whisper
+
+// === RHYTHM SECTION ===
+my cart has heavy wheels
+
+// === ATMOSPHERE ===
+consumerism mode on
+`;
+
+// Tab 3 - "Empty Aisles" - An ambient/experimental soundscape
+const TAB3_EMPTY_AISLES = `// ═══════════════════════════════════════════════════════════════
+//  EMPTY AISLES - Ambient soundscape for late night contemplation
+//  Press Ctrl+Shift+Enter to run all lines
+// ═══════════════════════════════════════════════════════════════
+
+// === DEEP DRONES ===
+[0] add luxury butter shelflife forever nutriscore E volume soft
+[1] add expensive oil shelflife forever nutriscore D volume quiet
+
+// === FLOATING PADS ===
+[2] add glass wine shelflife forever nutriscore C volume soft
+[3] add luxury cheese shelflife year volume quiet
+[4] add expensive pasta shelflife year nutriscore B volume whisper
+
+// === ETHEREAL TEXTURES ===
+[5] add addictive eggs shelflife year nutriscore A volume quiet
+[6] add artisanal bread shelflife month volume soft
+[7] add overpriced chocolate shelflife year volume whisper
+
+// === SPARSE MELODIC HINTS ===
+[8] add bargain coffee shelflife month open volume quiet
+[9] add glass salad shelflife week open volume whisper
+
+// === MINIMAL RHYTHM (optional - comment out for pure drone) ===
+my cart has wobbly wheels
+
+// === DEEP ATMOSPHERE ===
+aisle_7 mode on
+discount mode on
+`;
+
+// Tab 4 - "Black Friday Chaos" - Intense industrial mayhem
+const TAB4_BLACK_FRIDAY = `// ═══════════════════════════════════════════════════════════════
+//  BLACK FRIDAY CHAOS - Industrial mayhem and consumer frenzy
+//  Press Ctrl+Shift+Enter to run all lines
+// ═══════════════════════════════════════════════════════════════
+
+// === AGGRESSIVE BASS ===
+[0] add industrial ham shelflife week nutriscore E volume max
+[1] add vomit soda shelflife week volume loud
+
+// === DISTORTED LEADS ===
+[2] add mass-produced beer escalator express rush
+[3] add cheap pizza shelflife today nutriscore D
+[4] add industrial energy_drink escalator zigzag fast
+
+// === CHAOTIC TEXTURES ===
+[5] add vomit chips escalator broken rush open
+[6] add cheap candy shelflife today escalator express rush
+[7] add mass-produced cereal open
+
+// === NOISE ELEMENTS ===
+[8] add industrial rice shelflife today volume loud
+[9] add vomit salad escalator broken rush open volume soft
+
+// === RELENTLESS DRUMS ===
+my cart has turbo wheels
+
+// === FULL CHAOS MODE ===
+black_friday mode on
+apocalypse mode on
+`;
+
+// Tab 5 - "Lo-Fi Grocery" - Chill beats to shop to
+const TAB5_LOFI_GROCERY = `// ═══════════════════════════════════════════════════════════════
+//  LO-FI GROCERY - Chill beats to shop to
+//  Press Ctrl+Shift+Enter to run all lines
+// ═══════════════════════════════════════════════════════════════
+
+// === WARM BASS ===
+[0] add cheap ham shelflife month nutriscore C volume soft
+[1] add processed butter shelflife year volume quiet
+
+// === DUSTY KEYS ===
+[2] add cheap coffee shelflife month nutriscore B
+[3] add mass-produced beer shelflife month nutriscore A volume soft
+[4] add bargain wine shelflife year
+
+// === VINYL CRACKLE TEXTURES ===
+[5] add cheap eggs shelflife week volume quiet
+[6] add mass-produced bread shelflife month volume whisper
+
+// === SUBTLE MELODIES ===
+[7] add bargain chocolate escalator up slow volume soft
+[8] add cheap pasta shelflife year volume quiet
+
+// === SOFT PERCUSSION ===
+[9] add mass-produced rice shelflife month open volume whisper
+
+// === LAID BACK GROOVE ===
+my cart has smooth wheels
+
+// === NOSTALGIC WARMTH ===
+discount mode on
+`;
+
 
 // Editor tabs manager
 window.editorTabs = {
@@ -404,13 +532,23 @@ window.editorTabs = {
     this.content[1] = TAB1_EXAMPLES;
     this.tabNames[1] = 'Reference';
 
-    // Initialize empty tabs if not loaded
+    // Set default compositions for tabs 2-5 (only if empty/never customized)
+    const defaultCompositions = {
+      2: { content: TAB2_MIDNIGHT_MALL, name: 'Midnight Mall' },
+      3: { content: TAB3_EMPTY_AISLES, name: 'Empty Aisles' },
+      4: { content: TAB4_BLACK_FRIDAY, name: 'Black Friday' },
+      5: { content: TAB5_LOFI_GROCERY, name: 'Lo-Fi Grocery' }
+    };
+
+    // Initialize tabs with default compositions or empty
     for (let i = 2; i <= 9; i++) {
       if (!this.content[i]) {
-        this.content[i] = '';
+        // Use default composition if available, otherwise empty
+        this.content[i] = defaultCompositions[i]?.content || '';
       }
       if (!this.tabNames[i]) {
-        this.tabNames[i] = 'Tab ' + i;
+        // Use default name if available, otherwise Tab N
+        this.tabNames[i] = defaultCompositions[i]?.name || ('Tab ' + i);
       }
     }
 
